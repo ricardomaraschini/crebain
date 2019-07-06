@@ -60,7 +60,7 @@ func TestOneMatch(t *testing.T) {
 			multiMatcher := generateMulti(t, st.rules)
 			for i, str := range testStrings {
 				t.Run(fmt.Sprintf("%d: %s", i, str), func(t *testing.T) {
-					if got := multiMatcher.OneMatch(str); got != st.expectedMatch[i] {
+					if got := multiMatcher.Match(str); got != st.expectedMatch[i] {
 						t.Fatalf("Unexpected match: should be %t but %t returned", st.expectedMatch[i], got)
 					}
 				})

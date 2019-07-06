@@ -38,7 +38,7 @@ func (mm *Multi) addRule(rule string) error {
 	return nil
 }
 
-func (mm Multi) OneMatch(value string) bool {
+func (mm Multi) Match(value string) bool {
 	if mm.matcher == nil {
 		return false
 	}
