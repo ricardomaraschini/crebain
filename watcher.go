@@ -4,19 +4,29 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 )
 
+type matcher interface {
+	Match(value string) bool
+}
+
 // NewWatcher returns a Watcher that monitors file changes on path,
 // subdirectories are also monitored for changes as they got created.
-func NewWatcher(path string, db *FileDB) (*Watcher, error) {
+func NewWatcher(path string, exclusionRules matcher, db *FileDB) (*Watcher, error) {
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 
-	watcher := &Watcher{fsw, db}
+	watcher := &Watcher{
+		Watcher:        fsw,
+		db:             db,
+		exclusionRules: exclusionRules,
+		rootPath:       path,
+	}
 	finfo, err := os.Stat(path)
 	if err != nil {
 		return nil, err
@@ -41,7 +51,9 @@ func NewWatcher(path string, db *FileDB) (*Watcher, error) {
 // Watcher monitors changes on the filesystem.
 type Watcher struct {
 	*fsnotify.Watcher
-	db *FileDB
+	db             *FileDB
+	exclusionRules matcher
+	rootPath       string
 }
 
 // hookDir enables watcher on path, it complies with filepath.WalkFunc
@@ -52,7 +64,7 @@ func (w *Watcher) hookDir(path string, info os.FileInfo, err error) error {
 		return err
 	}
 
-	if !info.IsDir() {
+	if !w.isWatchable(path, info) {
 		return nil
 	}
 
@@ -60,6 +72,26 @@ func (w *Watcher) hookDir(path string, info os.FileInfo, err error) error {
 		return err
 	}
 	return nil
+}
+
+func (w *Watcher) isWatchable(path string, info os.FileInfo) bool {
+	if info.IsDir() {
+		return false
+	}
+
+	if w.isPathExcluded(path) {
+		return false
+	}
+
+	return true
+}
+
+// isPathExcluded checks whether the path matches against the exclusion rules.
+// Check is performed in relation of the root path.
+func (w *Watcher) isPathExcluded(path string) bool {
+	relative := strings.TrimPrefix(path, w.rootPath)
+	relative = strings.TrimPrefix(relative, "/")
+	return w.exclusionRules.Match(relative)
 }
 
 // loop awaits for file write operations. Everytime a write happens on monitored
@@ -101,8 +133,7 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 			return
 		}
 
-		// only adds to our database if it is a file.
-		if !finfo.IsDir() {
+		if w.isWatchable(event.Name, finfo) {
 			w.db.Push(event.Name)
 		}
 		return

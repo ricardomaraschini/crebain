@@ -7,14 +7,18 @@ import (
 	"os/exec"
 	"path"
 	"time"
+
+	"github.com/ricardomaraschini/crebain/match"
 )
 
 func main() {
+	exclusionRules := match.Multi{}
 	dpath, err := os.Getwd()
 	if err != nil {
 		log.Fatal("Getwd:", err)
 	}
 	path := flag.String("path", dpath, "the path to be watched")
+	flag.Var(&exclusionRules, "e", "regex rules for excluding some path from watching")
 	flag.Parse()
 
 	if err := os.Chdir(*path); err != nil {
@@ -22,7 +26,7 @@ func main() {
 	}
 
 	fileDB := NewFileDB(hasTestFile)
-	watcher, err := NewWatcher(*path, fileDB)
+	watcher, err := NewWatcher(*path, exclusionRules, fileDB)
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
