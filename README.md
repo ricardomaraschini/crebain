@@ -1,8 +1,8 @@
 ![crebain logo](assets/logo.png)
+## About
 
-# crebain
-Crebain
-
+Crebain watches a directory and automatically executes `go test` everytime a
+go file within the directory(or subdirectories) changes.
 
 ## Installing
 
@@ -16,5 +16,8 @@ $ go get github.com/ricardomaraschini/crebain/cmd/crebain
 $ crebain --path=/path/to/my/go/app
 ```
 
+## Command line options
 
-Installing
+```
+$ crebain --path=/path/to/my/go/app --exclude=.git --exclude=vendor
+```
