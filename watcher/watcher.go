@@ -19,17 +19,17 @@ type buffer interface {
 
 // New returns a Watcher that monitors file changes on path,
 // subdirectories are also monitored for changes as they got created.
-func New(path string, exclusionRules matcher, buf buffer) (*Watcher, error) {
+func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
 	}
 
 	watcher := &Watcher{
-		Watcher:        fsw,
-		buf:            buf,
-		exclusionRules: exclusionRules,
-		rootPath:       path,
+		Watcher:  fsw,
+		buf:      buf,
+		exclude:  exclude,
+		rootPath: path,
 	}
 	finfo, err := os.Stat(path)
 	if err != nil {
@@ -55,9 +55,9 @@ func New(path string, exclusionRules matcher, buf buffer) (*Watcher, error) {
 // Watcher monitors changes on the filesystem.
 type Watcher struct {
 	*fsnotify.Watcher
-	buf            buffer
-	exclusionRules matcher
-	rootPath       string
+	buf      buffer
+	exclude  matcher
+	rootPath string
 }
 
 // hookDir enables watcher on path, it complies with filepath.WalkFunc
@@ -87,7 +87,7 @@ func (w *Watcher) isWatchable(path string, info os.FileInfo) bool {
 func (w *Watcher) isPathExcluded(path string) bool {
 	relative := strings.TrimPrefix(path, w.rootPath)
 	relative = strings.TrimPrefix(relative, "/")
-	return w.exclusionRules.Match(relative)
+	return w.exclude.Match(relative)
 }
 
 // loop awaits for file write operations. Everytime a write happens on monitored

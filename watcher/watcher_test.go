@@ -61,7 +61,7 @@ func TestIsWatchable(t *testing.T) {
 			}
 
 			watcher := Watcher{
-				exclusionRules: &dummyMatcher{st.exclusion},
+				exclude: &dummyMatcher{st.exclusion},
 			}
 			if got := watcher.isWatchable(dir, info); got != st.expected {
 				t.Fatal("Unexpected result:", got)
@@ -74,7 +74,7 @@ func TestIsWatchable(t *testing.T) {
 func TestIsPathExcluded(t *testing.T) {
 	path := "/mytowers/orthanc"
 	watcher := Watcher{
-		exclusionRules: &dummyMatcher{func(relative string) bool {
+		exclude: &dummyMatcher{func(relative string) bool {
 			return relative == "orthanc"
 		}},
 		rootPath: "/mytowers",
