@@ -8,6 +8,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
 )
 
@@ -25,20 +26,20 @@ func main() {
 		log.Fatal("Chdir:", err)
 	}
 
-	fileDB := NewFileDB(hasTestFile)
-	watcher, err := NewWatcher(*path, exclusionRules, fileDB)
+	buf := fbuffer.New(hasTestFile)
+	watcher, err := NewWatcher(*path, exclusionRules, buf)
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
 	defer watcher.Close()
-	drainLoop(fileDB, time.Second)
+	drainLoop(buf, time.Second)
 }
 
 // drain loop iterates once every interval duration running tests on all
 // changed modules. With some editors we may see multiple Write events
 // almost at the same time, with this loop we consolidate what we have
 // in memory thus running tests only once.
-func drainLoop(db *FileDB, interval time.Duration) {
+func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 	for range time.NewTicker(interval).C {
 		modifiedFiles := db.Drain()
 		if len(modifiedFiles) == 0 {

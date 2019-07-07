@@ -13,9 +13,13 @@ type matcher interface {
 	Match(value string) bool
 }
 
+type buffer interface {
+	Push(path string)
+}
+
 // NewWatcher returns a Watcher that monitors file changes on path,
 // subdirectories are also monitored for changes as they got created.
-func NewWatcher(path string, exclusionRules matcher, db *FileDB) (*Watcher, error) {
+func NewWatcher(path string, exclusionRules matcher, buf buffer) (*Watcher, error) {
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -23,7 +27,7 @@ func NewWatcher(path string, exclusionRules matcher, db *FileDB) (*Watcher, erro
 
 	watcher := &Watcher{
 		Watcher:        fsw,
-		db:             db,
+		buf:            buf,
 		exclusionRules: exclusionRules,
 		rootPath:       path,
 	}
@@ -51,7 +55,7 @@ func NewWatcher(path string, exclusionRules matcher, db *FileDB) (*Watcher, erro
 // Watcher monitors changes on the filesystem.
 type Watcher struct {
 	*fsnotify.Watcher
-	db             *FileDB
+	buf            buffer
 	exclusionRules matcher
 	rootPath       string
 }
@@ -109,7 +113,7 @@ func (w *Watcher) loop() {
 func (w *Watcher) processEvent(event fsnotify.Event) {
 	if event.Op&fsnotify.Create == fsnotify.Create {
 		// if something got created we need to check if it is a file or
-		// a directory, in case of file we add it to our internal db
+		// a directory, in case of file we add it to our internal buffer
 		// and if it is a directory we hook ourselves on it to capture
 		// future events.
 		finfo, err := os.Stat(event.Name)
@@ -126,7 +130,7 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 		}
 
 		if w.isWatchable(event.Name, finfo) {
-			w.db.Push(event.Name)
+			w.buf.Push(event.Name)
 		}
 		return
 	}
@@ -136,5 +140,5 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 		return
 	}
 
-	w.db.Push(event.Name)
+	w.buf.Push(event.Name)
 }
