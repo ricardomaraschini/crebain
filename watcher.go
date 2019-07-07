@@ -129,7 +129,8 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 			return
 		}
 
-		if w.isWatchable(event.Name, finfo) {
+		// we only push files to buffer, never directories.
+		if !finfo.IsDir() {
 			w.buf.Push(event.Name)
 		}
 		return
