@@ -10,6 +10,7 @@ import (
 
 	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
+	"github.com/ricardomaraschini/crebain/watcher"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	buf := fbuffer.New(hasTestFile)
-	watcher, err := NewWatcher(*path, exclude, buf)
+	watcher, err := watcher.New(*path, exclude, buf)
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
@@ -67,7 +68,7 @@ func test(dirs []string) {
 	cmd.Stdout = os.Stdout
 	cmd.Run()
 	for _, dir := range dirs {
-		cmd := exec.Command("go", "test", "-v", "-cover", dir)
+		cmd := exec.Command("go", "test", "-cover", dir)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		cmd.Run()

@@ -1,4 +1,4 @@
-package main
+package watcher
 
 import (
 	"log"
@@ -17,9 +17,9 @@ type buffer interface {
 	Push(path string)
 }
 
-// NewWatcher returns a Watcher that monitors file changes on path,
+// New returns a Watcher that monitors file changes on path,
 // subdirectories are also monitored for changes as they got created.
-func NewWatcher(path string, exclusionRules matcher, buf buffer) (*Watcher, error) {
+func New(path string, exclusionRules matcher, buf buffer) (*Watcher, error) {
 	fsw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
