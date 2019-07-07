@@ -13,13 +13,14 @@ import (
 )
 
 func main() {
-	exclusionRules := match.Multi{}
+	var exclude match.Multi
+
 	dpath, err := os.Getwd()
 	if err != nil {
 		log.Fatal("Getwd:", err)
 	}
 	path := flag.String("path", dpath, "the path to be watched")
-	flag.Var(&exclusionRules, "e", "regex rules for excluding some path from watching")
+	flag.Var(&exclude, "exclude", "regex rules for excluding paths from watching")
 	flag.Parse()
 
 	if err := os.Chdir(*path); err != nil {
@@ -27,7 +28,7 @@ func main() {
 	}
 
 	buf := fbuffer.New(hasTestFile)
-	watcher, err := NewWatcher(*path, exclusionRules, buf)
+	watcher, err := NewWatcher(*path, exclude, buf)
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
@@ -41,23 +42,23 @@ func main() {
 // in memory thus running tests only once.
 func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 	for range time.NewTicker(interval).C {
-		modifiedFiles := db.Drain()
-		if len(modifiedFiles) == 0 {
+		modFiles := db.Drain()
+		if len(modFiles) == 0 {
 			continue
 		}
 
 		dedup := make(map[string]bool)
-		modifiedDirs := make([]string, 0)
-		for _, fpath := range modifiedFiles {
+		modDirs := make([]string, 0)
+		for _, fpath := range modFiles {
 			dir := path.Dir(fpath)
 			if _, ok := dedup[dir]; ok {
 				continue
 			}
 			dedup[dir] = true
-			modifiedDirs = append(modifiedDirs, dir)
+			modDirs = append(modDirs, dir)
 		}
 
-		test(modifiedDirs)
+		test(modDirs)
 	}
 }
 
