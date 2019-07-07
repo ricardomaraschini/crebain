@@ -68,22 +68,14 @@ func (w *Watcher) hookDir(path string, info os.FileInfo, err error) error {
 		return nil
 	}
 
-	if err := w.Add(path); err != nil {
-		return err
-	}
-	return nil
+	return w.Add(path)
 }
 
 func (w *Watcher) isWatchable(path string, info os.FileInfo) bool {
-	if info.IsDir() {
-		return false
-	}
-
 	if w.isPathExcluded(path) {
 		return false
 	}
-
-	return true
+	return info.IsDir()
 }
 
 // isPathExcluded checks whether the path matches against the exclusion rules.

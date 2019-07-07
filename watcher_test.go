@@ -36,13 +36,13 @@ func TestIsWatchable(t *testing.T) {
 			name:      "file",
 			path:      tmpFile.Name(),
 			exclusion: func(_ string) bool { return false },
-			expected:  true,
+			expected:  false,
 		},
 		{
 			name:      "directory",
 			path:      dir,
 			exclusion: func(_ string) bool { return false },
-			expected:  false,
+			expected:  true,
 		},
 		{
 			name:      "excluded file",

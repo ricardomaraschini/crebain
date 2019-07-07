@@ -5,7 +5,8 @@ import (
 	"strings"
 )
 
-// Multi is a custom type complying to flag.Value interface. In every subsequent call of `Set` it will add the rule to the previous one by an OR clause.
+// Multi is a custom type complying to flag.Value interface. In every subsequent
+// call of `Set` it will add the rule to the previous one by an OR clause.
 type Multi struct {
 	rules   []string
 	matcher *regexp.Regexp
@@ -15,6 +16,7 @@ func (mm Multi) String() string {
 	return strings.Join(mm.rules, "\n")
 }
 
+// Set adds a new Rule to the Multi.rules slice.
 func (mm *Multi) Set(value string) error {
 	if err := mm.addRule(value); err != nil {
 		return err
@@ -38,6 +40,7 @@ func (mm *Multi) addRule(rule string) error {
 	return nil
 }
 
+// Match applies rules on value returning true if regex matches.
 func (mm Multi) Match(value string) bool {
 	if mm.matcher == nil {
 		return false
