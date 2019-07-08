@@ -2,17 +2,21 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
+	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 	"github.com/ricardomaraschini/crebain/watcher"
 )
+
+var tifc *tui.TUI
 
 func main() {
 	var exclude match.Multi
@@ -29,6 +33,11 @@ func main() {
 
 	if err := os.Chdir(*path); err != nil {
 		log.Fatal("Chdir:", err)
+	}
+
+	tifc, err = tui.New()
+	if err != nil {
+		log.Fatal("tifc.New:", err)
 	}
 
 	buf := fbuffer.New(hasTestFile)
@@ -63,19 +72,22 @@ func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 			modDirs = append(modDirs, dir)
 		}
 
-		test(modDirs)
+		testDir(modDirs)
 	}
 }
 
-func test(dirs []string) {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+func testDir(dirs []string) {
+	runner := trunner.New()
 	for _, dir := range dirs {
-		cmd := exec.Command("go", "test", "-cover", dir)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
+		result, err := runner.Run(dir)
+		if err != nil {
+			log.Print("Run:", err)
+			return
+		}
+
+		for _, line := range result.Out {
+			fmt.Print(line.Output)
+		}
 	}
 }
 
