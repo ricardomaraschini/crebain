@@ -2,13 +2,11 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/ricardomaraschini/crebain/fbuffer"
@@ -78,22 +76,14 @@ func test(dirs []string) {
 	}
 }
 
-// hasTestFile is a filter that returns true if either filePath points to a
-// go test file or points to a go file with correspondent go test file.
+// hasTestFile is a filter that returns true if filePath belongs to a directory
+// containing test files.
 func hasTestFile(filePath string) bool {
 	if filepath.Ext(filePath) != ".go" {
 		return false
 	}
 
-	if strings.HasSuffix(filePath, "_test.go") {
-		return true
-	}
-
-	ext := filepath.Ext(filePath)
-	testFilePath := fmt.Sprintf(
-		"%s_test.go",
-		filePath[0:len(filePath)-len(ext)],
-	)
-	_, err := os.Stat(testFilePath)
-	return err == nil
+	dir := path.Dir(filePath)
+	testFiles, _ := filepath.Glob(dir + "/*_test.go")
+	return len(testFiles) > 0
 }
