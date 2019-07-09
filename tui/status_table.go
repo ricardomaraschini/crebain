@@ -1,65 +1,74 @@
-package main
+package tui
 
 import (
+	"sync"
+
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
 
 var (
-	successColor = ui.Color(10)
-	failureColor = ui.Color(124)
+	// kinda green
+	successStyle = ui.Style{
+		Fg: ui.ColorClear,
+		Bg: ui.Color(10),
+	}
+
+	// kinda red
+	failureStyle = ui.Style{
+		Fg: ui.ColorClear,
+		Bg: ui.Color(124),
+	}
 )
 
 // NewStatusTable returns a table that renders test statuses.
-func NewStatusTable(lines int) *StatusTable {
+func NewStatusTable(height int) *StatusTable {
 	table := widgets.NewTable()
-	table.SetRect(0, 0, 5, lines)
+	table.SetRect(0, 0, 5, height)
 	table.Border = false
 	table.BorderRight = false
 	table.FillRow = true
 	table.RowSeparator = false
 
-	texts := make([][]string, lines)
-	statuses := make(map[int]ui.Style, lines)
-	for i := 0; i < lines; i++ {
-		texts[i] = []string{"   "}
-		statuses[i] = ui.NewStyle(ui.ColorBlack)
+	maxRows := height - 2
+	table.Rows = make([][]string, maxRows)
+	table.RowStyles = make(map[int]ui.Style, maxRows)
+	for i := 0; i < maxRows; i++ {
+		table.Rows[i] = []string{"   "}
+		table.RowStyles[i] = ui.NewStyle(ui.ColorClear)
 	}
 
 	return &StatusTable{
-		statuses: statuses,
-		lines:    lines,
-		table:    table,
-		texts:    texts,
+		maxRows: maxRows,
+		table:   table,
 	}
 }
 
 // StatusTable holds a table where every line represents a test status.
 type StatusTable struct {
-	statuses map[int]ui.Style
-	texts    [][]string
-	lines    int
-	table    *widgets.Table
+	sync.Mutex
+	maxRows int
+	table   *widgets.Table
 }
 
-// Render renders the StatusTable on the screen.
-func (s *StatusTable) Render() {
-	s.table.Rows = s.texts
-	s.table.RowStyles = s.statuses
-	ui.Render(s.table)
-}
+// Event receives user events, this table has no action on events.
+func (s *StatusTable) Event(event string) {}
 
-// Push pushes a new status to the first line of the table.
+// Push pushes a new status row to the first line of the table.
 func (s *StatusTable) Push(success bool) {
-	color := ui.NewStyle(ui.ColorBlack, successColor)
+	s.Lock()
+	defer s.Unlock()
+
+	style := successStyle
 	if !success {
-		color = ui.NewStyle(ui.ColorBlack, failureColor)
+		style = failureStyle
 	}
 
-	newStatuses := map[int]ui.Style{0: color}
-	for i := 0; i < s.lines; i++ {
-		newStatuses[i+1] = s.statuses[i]
+	newStatuses := map[int]ui.Style{0: style}
+	for i := 0; i < s.maxRows; i++ {
+		newStatuses[i+1] = s.table.RowStyles[i]
 	}
-	s.statuses = newStatuses
-	s.Render()
+	s.table.RowStyles = newStatuses
+
+	ui.Render(s.table)
 }
