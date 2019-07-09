@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"path"
@@ -15,8 +14,6 @@ import (
 	"github.com/ricardomaraschini/crebain/tui"
 	"github.com/ricardomaraschini/crebain/watcher"
 )
-
-var tifc *tui.TUI
 
 func main() {
 	var exclude match.Multi
@@ -35,11 +32,6 @@ func main() {
 		log.Fatal("Chdir:", err)
 	}
 
-	tifc, err = tui.New()
-	if err != nil {
-		log.Fatal("tifc.New:", err)
-	}
-
 	buf := fbuffer.New(hasTestFile)
 	watcher, err := watcher.New(*path, exclude, buf)
 	if err != nil {
@@ -47,7 +39,8 @@ func main() {
 	}
 	defer watcher.Close()
 	watcher.Loop()
-	drainLoop(buf, time.Second)
+	go drainLoop(buf, time.Second)
+	tui.StartTUI()
 }
 
 // drain loop iterates once every interval duration running tests on all
@@ -84,10 +77,7 @@ func testDir(dirs []string) {
 			log.Print("Run:", err)
 			return
 		}
-
-		for _, line := range result.Out {
-			fmt.Print(line.Output)
-		}
+		tui.NewTestResult(result)
 	}
 }
 

@@ -17,7 +17,6 @@ func New() *TRunner {
 type TestResult struct {
 	Code int
 	Out  []ResultLine
-	Err  []byte
 }
 
 // ResultLine holds every line of a go test.
