@@ -35,6 +35,7 @@ func main() {
 		log.Fatal("NewWatcher:", err)
 	}
 	defer watcher.Close()
+	watcher.Loop()
 	drainLoop(buf, time.Second)
 }
 

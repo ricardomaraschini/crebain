@@ -48,8 +48,11 @@ func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 		return nil, err
 	}
 
-	go watcher.loop()
 	return watcher, nil
+}
+
+func (w *Watcher) Loop() {
+	go w.loop()
 }
 
 // Watcher monitors changes on the filesystem.
@@ -136,8 +139,10 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 		return
 	}
 
-	// we only care about write changes from this point on.
-	if event.Op&fsnotify.Write != fsnotify.Write {
+	// Ignore events that are only chmod.
+	// Write, rename and remove are acceptable.
+	if event.Op == fsnotify.Chmod {
+		log.Println("Chmod:", event.Name)
 		return
 	}
 
