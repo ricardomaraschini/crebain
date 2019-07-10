@@ -97,27 +97,6 @@ func (d *dummyBuffer) Push(path string) {
 }
 
 func TestProcessEvent(t *testing.T) {
-	watchable, err := ioutil.TempDir("", "processEvent")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(watchable)
-
-	buf := &dummyBuffer{}
-	matcher := &dummyMatcher{
-		func(_ string) bool { return false },
-	}
-
-	w, err := New(
-		watchable,
-		matcher,
-		buf,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer w.Watcher.Close()
-
 	tmpDir, err := ioutil.TempDir("", "processEvent")
 	if err != nil {
 		t.Fatal(err)
@@ -129,7 +108,22 @@ func TestProcessEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tmpFile.Close()
+
 	name := tmpFile.Name()
+	buf := &dummyBuffer{}
+	matcher := &dummyMatcher{
+		func(_ string) bool { return false },
+	}
+
+	w, err := New(
+		tmpDir,
+		matcher,
+		buf,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Watcher.Close()
 
 	t.Run("accepted", func(t *testing.T) {
 		ops := []fsnotify.Op{

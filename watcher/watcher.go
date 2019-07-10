@@ -114,6 +114,13 @@ func (w *Watcher) loop() {
 
 // processEvent is called everytime we detect a change on the filesystem.
 func (w *Watcher) processEvent(event fsnotify.Event) {
+	// Ignore events that are only chmod.
+	// Write, rename and remove are ok.
+	if event.Op == fsnotify.Chmod {
+		log.Println("Chmod:", event.Name)
+		return
+	}
+
 	if event.Op&fsnotify.Create == fsnotify.Create {
 		// if something got created we need to check if it is a file or
 		// a directory, in case of file we add it to our internal buffer
@@ -132,18 +139,14 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 			return
 		}
 
-		// we only push files to buffer, never directories.
-		if !finfo.IsDir() {
-			w.buf.Push(event.Name)
+		// we only push files to buffer, never directories,
+		// discarding the ones which should be excluded.
+		if finfo.IsDir() {
+			return
 		}
-		return
-	}
-
-	// Ignore events that are only chmod.
-	// Write, rename and remove are acceptable.
-	if event.Op == fsnotify.Chmod {
-		log.Println("Chmod:", event.Name)
-		return
+		if w.isPathExcluded(event.Name) {
+			return
+		}
 	}
 
 	w.buf.Push(event.Name)
