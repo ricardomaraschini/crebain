@@ -16,6 +16,8 @@ import (
 
 func main() {
 	var exclude match.Multi
+	// Ignore hidden files and directories by default.
+	exclude.Set("^\\.")
 
 	dpath, err := os.Getwd()
 	if err != nil {
