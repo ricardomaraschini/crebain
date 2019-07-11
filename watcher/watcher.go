@@ -117,7 +117,6 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 	// Ignore events that are only chmod.
 	// Write, rename and remove are ok.
 	if event.Op == fsnotify.Chmod {
-		log.Println("Chmod:", event.Name)
 		return
 	}
 
