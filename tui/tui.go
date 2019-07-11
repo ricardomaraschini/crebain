@@ -1,12 +1,14 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/ricardomaraschini/crebain/trunner"
 
 	ui "github.com/gizak/termui/v3"
 )
 
-// Event processor is an entity capable of processing user events.
+// EventProcessor is an entity capable of processing user events.
 type EventProcessor interface {
 	Event(string)
 }
@@ -17,13 +19,14 @@ var (
 	testDetail  *ResultBox
 )
 
+// NewTestResult ...
 func NewTestResult(res *trunner.TestResult) {
 	statusTable.Push(res.Code == 0)
 	pkg := "undefined"
 	if len(res.Out) > 0 {
 		pkg = res.Out[0].Package
 	}
-	testsTable.Push(pkg)
+	testsTable.Push(time.Now().String(), pkg)
 
 	content := ""
 	for _, out := range res.Out {
