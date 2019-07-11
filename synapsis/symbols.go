@@ -21,9 +21,12 @@ var (
 	parseMode = parser.DeclarationErrors
 )
 
+// Symbol is an exported symbol identifier in the file.
 type Symbol struct {
 	Declaration Declaration
 	Name        string
+	Start       int
+	End         int
 }
 
 // GetExportedSymbols returns the list of all the symbols contained in the file.
@@ -62,6 +65,8 @@ func exportedSymbols(decl ast.Decl) ([]Symbol, error) {
 		ss = append(ss, Symbol{
 			Name:        d.Name.String(),
 			Declaration: FuncDecl,
+			Start:       int(d.Name.Pos()),
+			End:         int(d.Name.End()),
 		})
 	case *ast.GenDecl:
 		switch d.Tok {
@@ -92,7 +97,8 @@ func isExported(name string) bool {
 func getValueNames(decl Declaration, specs []ast.Spec) []Symbol {
 	ss := []Symbol{}
 	for _, spec := range specs {
-		names := spec.(*ast.ValueSpec).Names
+		value := spec.(*ast.ValueSpec)
+		names := value.Names
 		for _, n := range names {
 			name := n.String()
 			if !isExported(name) {
@@ -101,6 +107,8 @@ func getValueNames(decl Declaration, specs []ast.Spec) []Symbol {
 			ss = append(ss, Symbol{
 				Declaration: decl,
 				Name:        name,
+				Start:       int(n.Pos()),
+				End:         int(n.End()),
 			})
 		}
 	}
@@ -119,6 +127,8 @@ func getTypesSymbols(specs []ast.Spec) []Symbol {
 		ss = append(ss, Symbol{
 			Declaration: TypeDecl,
 			Name:        name,
+			Start:       int(ts.Name.Pos()),
+			End:         int(ts.Name.End()),
 		})
 	}
 
