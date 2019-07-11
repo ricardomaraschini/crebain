@@ -15,8 +15,19 @@ import (
 	"github.com/ricardomaraschini/crebain/watcher"
 )
 
+var (
+	userIf *tui.TUI
+)
+
 func main() {
 	var exclude match.Multi
+	var err error
+
+	userIf, err = tui.New()
+	if err != nil {
+		log.Fatal("tui.New():", err)
+	}
+
 	// Ignore hidden files and directories by default.
 	exclude.Set("^\\.")
 
@@ -40,7 +51,8 @@ func main() {
 	defer watcher.Close()
 	watcher.Loop()
 	go drainLoop(buf, time.Second)
-	tui.StartTUI()
+
+	userIf.Start()
 }
 
 // drain loop iterates once every interval duration running tests on all
@@ -77,7 +89,7 @@ func testDir(dirs []string) {
 			log.Print("Run:", err)
 			return
 		}
-		tui.NewTestResult(result)
+		userIf.PushResult(result)
 	}
 }
 

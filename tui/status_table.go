@@ -3,6 +3,8 @@ package tui
 import (
 	"sync"
 
+	"github.com/ricardomaraschini/crebain/trunner"
+
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
 )
@@ -55,12 +57,12 @@ type StatusTable struct {
 func (s *StatusTable) Event(event string) {}
 
 // Push pushes a new status row to the first line of the table.
-func (s *StatusTable) Push(success bool) {
+func (s *StatusTable) Push(res *trunner.TestResult) {
 	s.Lock()
 	defer s.Unlock()
 
 	style := successStyle
-	if !success {
+	if res.Code != 0 {
 		style = failureStyle
 	}
 
@@ -69,6 +71,5 @@ func (s *StatusTable) Push(success bool) {
 		newStatuses[i+1] = s.table.RowStyles[i]
 	}
 	s.table.RowStyles = newStatuses
-
 	ui.Render(s.table)
 }
