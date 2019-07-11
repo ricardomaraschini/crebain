@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 type dummyMatcher struct {
@@ -84,4 +86,119 @@ func TestIsPathExcluded(t *testing.T) {
 	if got := watcher.isPathExcluded(path); got != expected {
 		t.Fatal("Unexpected result:", got)
 	}
+}
+
+type dummyBuffer struct {
+	element string
+}
+
+func (d *dummyBuffer) Push(path string) {
+	d.element = path
+}
+
+func TestProcessEvent(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "processEvent")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	tmpFile, err := os.Create(tmpDir + "/confusion.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tmpFile.Close()
+
+	name := tmpFile.Name()
+	buf := &dummyBuffer{}
+	matcher := &dummyMatcher{
+		func(_ string) bool { return false },
+	}
+
+	w, err := New(
+		tmpDir,
+		matcher,
+		buf,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Watcher.Close()
+
+	t.Run("accepted", func(t *testing.T) {
+		ops := []fsnotify.Op{
+			fsnotify.Create,
+			fsnotify.Create | fsnotify.Write,
+			fsnotify.Write,
+			fsnotify.Rename | fsnotify.Write,
+			fsnotify.Rename,
+			fsnotify.Chmod | fsnotify.Write,
+		}
+		for _, op := range ops {
+			t.Run(op.String(), func(t *testing.T) {
+				buf.element = ""
+
+				e := fsnotify.Event{
+					Name: name,
+					Op:   op,
+				}
+
+				w.processEvent(e)
+				if buf.element != name {
+					t.Fatalf("Ignored %s event", op)
+				}
+			})
+		}
+	})
+
+	t.Run("ignored", func(t *testing.T) {
+		t.Run("chmod", func(t *testing.T) {
+			buf.element = ""
+
+			op := fsnotify.Chmod
+			e := fsnotify.Event{
+				Name: name,
+				Op:   op,
+			}
+
+			w.processEvent(e)
+			if buf.element == name {
+				t.Fatalf("Accepted %s event", op)
+			}
+		})
+		t.Run("dir", func(t *testing.T) {
+			buf.element = ""
+			newDir, err := ioutil.TempDir("", "processEvent2")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer os.RemoveAll(newDir)
+
+			op := fsnotify.Create
+			e := fsnotify.Event{
+				Name: newDir,
+				Op:   op,
+			}
+
+			w.processEvent(e)
+			if buf.element == newDir {
+				t.Fatalf("Accepted dir %s", newDir)
+			}
+		})
+		t.Run("excluded", func(t *testing.T) {
+			buf.element = ""
+			matcher.match = func(_ string) bool { return true }
+
+			op := fsnotify.Create
+			e := fsnotify.Event{
+				Name: name,
+				Op:   op,
+			}
+
+			w.processEvent(e)
+			if buf.element == name {
+				t.Fatalf("Accepted %s excluded", name)
+			}
+		})
+	})
 }
