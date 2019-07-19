@@ -1,22 +1,23 @@
 package main
 
 import (
+	_ "errors"
 	"fmt"
-	"os"
+	. "os"
 	"strconv"
 
 	"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib"
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	if len(Args) < 2 {
 		fmt.Println("Number not set")
 	}
 
-	number, err := strconv.Atoi(os.Args[1])
+	number, err := strconv.Atoi(Args[1])
 	if err != nil {
 		fmt.Println("not valid number")
-		os.Exit(1)
+		Exit(1)
 	}
 
 	series := fib.New()

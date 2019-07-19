@@ -23,10 +23,15 @@ var (
 
 // Symbol is an exported symbol identifier in the file.
 type Symbol struct {
+	Package     string
 	Declaration Declaration
 	Name        string
 	Start       int
 	End         int
+}
+
+func (s Symbol) String() string {
+	return s.Package + s.Name
 }
 
 // GetExportedSymbols returns the list of all the symbols contained in the file.
