@@ -11,22 +11,13 @@ import (
 	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
 	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 	"github.com/ricardomaraschini/crebain/tui/basic"
 	"github.com/ricardomaraschini/crebain/tui/fancy"
 	"github.com/ricardomaraschini/crebain/watcher"
 )
 
-// UI interface is implemented by a text based user interface or any other
-// implementation that renders test results.
-type UI interface {
-	PushResult(res *trunner.TestResult)
-	Start()
-	Close()
-}
-
-var (
-	userIf UI
-)
+var userIf tui.UI
 
 func main() {
 	var exclude match.Multi
@@ -53,9 +44,6 @@ func main() {
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
-	defer watcher.Close()
-	watcher.Loop()
-	go drainLoop(buf, time.Second)
 
 	userIf = basic.New()
 	if *xif {
@@ -65,8 +53,23 @@ func main() {
 		}
 	}
 
-	defer userIf.Close()
+	go drainLoop(buf, time.Second)
+	go readWatcherErrors(watcher)
+	watcher.Loop()
 	userIf.Start()
+	watcher.Close()
+}
+
+// readWatcherErrors captures all errors and reports them on the interface.
+func readWatcherErrors(w *watcher.Watcher) {
+	for {
+		err := <-w.Errors
+		userIf.PushResult(&trunner.TestResult{
+			Dir:  "undefined",
+			Out:  []string{err.Error()},
+			Code: 256,
+		})
+	}
 }
 
 // drain loop iterates once every interval duration running tests on all
@@ -91,18 +94,20 @@ func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 			modDirs = append(modDirs, dir)
 		}
 
-		testDir(modDirs)
+		testDirs(modDirs)
 	}
 }
 
-func testDir(dirs []string) {
+// testDirs run go test on provided slice of directories.
+func testDirs(dirs []string) {
 	runner := trunner.New()
 	for _, dir := range dirs {
 		result, err := runner.Run(dir)
 		if err != nil {
 			userIf.PushResult(&trunner.TestResult{
-				Dir: dir,
-				Out: []string{err.Error()},
+				Dir:  dir,
+				Out:  []string{err.Error()},
+				Code: 256,
 			})
 			return
 		}

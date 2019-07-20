@@ -29,7 +29,7 @@ func (t *TRunner) Run(dir string) (*TestResult, error) {
 	}
 
 	std := bytes.NewBuffer(nil)
-	cmd := exec.Command("go", "test", dir)
+	cmd := exec.Command("go", "test", "-cover", dir)
 	cmd.Stdout = std
 	cmd.Stderr = std
 	if err := cmd.Start(); err != nil {
@@ -50,6 +50,19 @@ func (t *TRunner) Run(dir string) (*TestResult, error) {
 		return nil, err
 	}
 
-	result.Out = strings.Split(string(rawTestOutput), "\n")
+	result.Out = t.parseOutput(string(rawTestOutput))
 	return &result, nil
+}
+
+// parseOutput splits content by new lines, removing empty lines.
+func (t *TRunner) parseOutput(content string) []string {
+	rawLines := strings.Split(content, "\n")
+	lines := make([]string, 0)
+	for _, line := range rawLines {
+		if line == "" {
+			continue
+		}
+		lines = append(lines, line)
+	}
+	return lines
 }

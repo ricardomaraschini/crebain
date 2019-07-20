@@ -87,7 +87,7 @@ func (r *TestDetail) Update(res *trunner.TestResult) {
 
 	r.fullContent = make([]string, 0)
 	for _, line := range res.Out {
-		line = strings.Replace(line, "\t", "    ", -1)
+		line = strings.Replace(line, "\t", " ", -1)
 		r.fullContent = append(r.fullContent, line)
 	}
 

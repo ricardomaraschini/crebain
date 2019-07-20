@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
 type matcher interface {
@@ -30,6 +31,7 @@ func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 		buf:      buf,
 		exclude:  exclude,
 		rootPath: path,
+		Error:    make(chan error, 10),
 	}
 	finfo, err := os.Stat(path)
 	if err != nil {
@@ -57,6 +59,7 @@ type Watcher struct {
 	buf      buffer
 	exclude  matcher
 	rootPath string
+	Error    chan error
 }
 
 // hookDir enables watcher on path, it complies with filepath.WalkFunc
@@ -108,8 +111,20 @@ func (w *Watcher) loop() {
 			if !ok {
 				log.Fatal("watcher errors channel closed.")
 			}
-			log.Println("watcher error:", err)
+			w.notifyError(err, "watcherError")
 		}
+	}
+}
+
+// notifyError tries to write the provided error on watchers Error channel.
+//
+// In case of failure, error is logged using log package.
+func (w *Watcher) notifyError(err error, msg string) {
+	err = errors.Wrap(err, "Stat")
+	select {
+	case w.Error <- err:
+	default:
+		log.Println(err)
 	}
 }
 
@@ -128,14 +143,14 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 		// future events.
 		finfo, err := os.Stat(event.Name)
 		if err != nil {
-			log.Println("Stat:", event.Name, err)
+			w.notifyError(err, "os.Stat")
 			return
 		}
 
 		// try to hook on this new file/directory. If it is not a dir
 		// it will be a no-op anyways.
 		if err := w.hookDir(event.Name, finfo, nil); err != nil {
-			log.Println("hookDir:", event.Name, err)
+			w.notifyError(err, "hookDir")
 			return
 		}
 
