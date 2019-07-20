@@ -13,6 +13,10 @@ go file within the directory(or subdirectories) changes.
 
 ## Demo
 
+Text user interface
+[![asciicast](https://asciinema.org/a/258335.svg)](https://asciinema.org/a/258335)
+
+Regular/Simple interface
 [![asciicast](https://asciinema.org/a/INzHWa9uQe9ASeNhiGI4T5WBP.svg)](https://asciinema.org/a/INzHWa9uQe9ASeNhiGI4T5WBP)
 
 ## Installing
