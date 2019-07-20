@@ -91,7 +91,7 @@ func (o *TestsTable) Push(res tui.Drawable) {
 	defer o.Unlock()
 
 	rows := [][]string{
-		[]string{time.Now().Format("Mon Jan 2 15:04:05"), res.Title()},
+		{time.Now().Format("Mon Jan 2 15:04:05"), res.Title()},
 	}
 	results := []tui.Drawable{res}
 
