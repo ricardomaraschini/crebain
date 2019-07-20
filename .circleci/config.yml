@@ -8,3 +8,4 @@ jobs:
       - checkout
       - run: GO111MODULE=on go mod vendor
       - run: go test -v ./...
+      - run: go build -o crebain github.com/ricardomaraschini/crebain/cmd/crebain
