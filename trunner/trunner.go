@@ -19,6 +19,21 @@ type TestResult struct {
 	Code int
 }
 
+// Content return the result of the test.
+func (t *TestResult) Content() []string {
+	return t.Out
+}
+
+// Title returns the test directory to be rendered as test title.
+func (t *TestResult) Title() string {
+	return t.Dir
+}
+
+// Success return if the test was successful.
+func (t *TestResult) Success() bool {
+	return t.Code == 0
+}
+
 // TRunner is go test helper.
 type TRunner struct{}
 

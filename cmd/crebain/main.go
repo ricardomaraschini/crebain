@@ -64,11 +64,7 @@ func main() {
 func readWatcherErrors(w *watcher.Watcher) {
 	for {
 		err := <-w.Errors
-		userIf.PushResult(&trunner.TestResult{
-			Dir:  "undefined",
-			Out:  []string{err.Error()},
-			Code: 256,
-		})
+		userIf.PushResult(&SysError{err})
 	}
 }
 
@@ -104,11 +100,7 @@ func testDirs(dirs []string) {
 	for _, dir := range dirs {
 		result, err := runner.Run(dir)
 		if err != nil {
-			userIf.PushResult(&trunner.TestResult{
-				Dir:  dir,
-				Out:  []string{err.Error()},
-				Code: 256,
-			})
+			userIf.PushResult(&SysError{err})
 			return
 		}
 		userIf.PushResult(result)

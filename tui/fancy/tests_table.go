@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
@@ -31,7 +31,7 @@ func NewTestsTable(width, height int) *TestsTable {
 	table.SetRect(5, 0, width, height)
 
 	return &TestsTable{
-		OnSelRowChange: func(*trunner.TestResult) {},
+		OnSelRowChange: func(tui.Drawable) {},
 		maxRows:        height - 2,
 		table:          table,
 	}
@@ -42,8 +42,8 @@ func NewTestsTable(width, height int) *TestsTable {
 // Allow user to navigate through test results.
 type TestsTable struct {
 	sync.Mutex
-	testResults    []*trunner.TestResult
-	OnSelRowChange func(*trunner.TestResult)
+	testResults    []tui.Drawable
+	OnSelRowChange func(tui.Drawable)
 	selRow         int
 	maxRows        int
 	table          *widgets.Table
@@ -86,14 +86,14 @@ func (o *TestsTable) Event(event string) {
 }
 
 // Push adds a new row to the begining of the table.
-func (o *TestsTable) Push(res *trunner.TestResult) {
+func (o *TestsTable) Push(res tui.Drawable) {
 	o.Lock()
 	defer o.Unlock()
 
 	rows := [][]string{
-		[]string{time.Now().Format("Mon Jan 2 15:04:05"), res.Dir},
+		[]string{time.Now().Format("Mon Jan 2 15:04:05"), res.Title()},
 	}
-	results := []*trunner.TestResult{res}
+	results := []tui.Drawable{res}
 
 	o.table.Rows = append(rows, o.table.Rows...)
 	o.testResults = append(results, o.testResults...)

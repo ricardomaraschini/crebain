@@ -4,7 +4,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
@@ -81,16 +81,17 @@ func (r *TestDetail) down() {
 }
 
 // Update sets the title and text to be rendered.
-func (r *TestDetail) Update(res *trunner.TestResult) {
+func (r *TestDetail) Update(res tui.Drawable) {
 	r.Lock()
 	defer r.Unlock()
 
 	r.fullContent = make([]string, 0)
-	for _, line := range res.Out {
+	for _, line := range res.Content() {
 		line = strings.Replace(line, "\t", " ", -1)
 		r.fullContent = append(r.fullContent, line)
 	}
 
+	r.box.Title = res.Title()
 	r.firstRenderedRow = 0
 	r.firstRenderedCol = 0
 	r.writeContent()

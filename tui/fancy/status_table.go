@@ -3,7 +3,7 @@ package fancy
 import (
 	"sync"
 
-	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 
 	ui "github.com/gizak/termui/v3"
 	"github.com/gizak/termui/v3/widgets"
@@ -58,13 +58,13 @@ type StatusTable struct {
 func (s *StatusTable) Event(event string) {}
 
 // Push pushes a new status row to the first line of the table.
-func (s *StatusTable) Push(res *trunner.TestResult) {
+func (s *StatusTable) Push(res tui.Drawable) {
 	s.Lock()
 	defer s.Unlock()
 
-	style := successStyle
-	if res.Code != 0 {
-		style = failureStyle
+	style := failureStyle
+	if res.Success() {
+		style = successStyle
 	}
 
 	newStatuses := map[int]ui.Style{0: style}

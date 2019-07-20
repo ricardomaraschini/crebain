@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 )
 
 // New return a new instance of the basic user interface.
@@ -22,10 +22,10 @@ type TUI struct {
 }
 
 // PushResult prints the test result on the screen.
-func (t *TUI) PushResult(res *trunner.TestResult) {
+func (t *TUI) PushResult(res tui.Drawable) {
 	t.clearScreen()
-	fmt.Println(res.Dir)
-	for _, line := range res.Out {
+	fmt.Println(res.Title())
+	for _, line := range res.Content() {
 		fmt.Println(line)
 	}
 }

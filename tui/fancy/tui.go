@@ -1,7 +1,7 @@
 package fancy
 
 import (
-	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
 
 	ui "github.com/gizak/termui/v3"
 )
@@ -52,7 +52,7 @@ func (t *TUI) Close() {
 }
 
 // PushResult shows a new test result in the interface.
-func (t *TUI) PushResult(res *trunner.TestResult) {
+func (t *TUI) PushResult(res tui.Drawable) {
 	t.statusTable.Push(res)
 	t.testsTable.Push(res)
 }
