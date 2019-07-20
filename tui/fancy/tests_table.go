@@ -66,12 +66,18 @@ func (o *TestsTable) Event(event string) {
 		if o.selRow == len(o.table.Rows)-1 {
 			return
 		}
+		if len(o.testResults) == 0 {
+			return
+		}
 		o.table.RowStyles[o.selRow] = normalRowStyle
 		o.selRow++
 		o.OnSelRowChange(o.testResults[o.selRow])
 		o.table.RowStyles[o.selRow] = selRowStyle
 	case "k", "<Up>":
 		if o.selRow == 0 {
+			return
+		}
+		if len(o.testResults) == 0 {
 			return
 		}
 		o.table.RowStyles[o.selRow] = normalRowStyle
