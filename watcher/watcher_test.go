@@ -96,6 +96,23 @@ func (d *dummyBuffer) Push(path string) {
 	d.element = path
 }
 
+func TestNewWithInvalidDir(t *testing.T) {
+	matcher := &dummyMatcher{
+		func(_ string) bool { return false },
+	}
+	buf := &dummyBuffer{}
+	_, err := New(
+		"/tmp/does-not-exist",
+		matcher,
+		buf,
+	)
+
+	if err == nil {
+		t.Fatal("expected error, received nil instead")
+	}
+
+}
+
 func TestProcessEvent(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "processEvent")
 	if err != nil {

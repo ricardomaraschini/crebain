@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/pkg/errors"
 )
 
 type matcher interface {
@@ -30,6 +31,7 @@ func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 		buf:      buf,
 		exclude:  exclude,
 		rootPath: path,
+		Error:    make(chan error, 10),
 	}
 	finfo, err := os.Stat(path)
 	if err != nil {
@@ -51,16 +53,13 @@ func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 	return watcher, nil
 }
 
-func (w *Watcher) Loop() {
-	go w.loop()
-}
-
 // Watcher monitors changes on the filesystem.
 type Watcher struct {
 	*fsnotify.Watcher
 	buf      buffer
 	exclude  matcher
 	rootPath string
+	Error    chan error
 }
 
 // hookDir enables watcher on path, it complies with filepath.WalkFunc
@@ -93,6 +92,11 @@ func (w *Watcher) isPathExcluded(path string) bool {
 	return w.exclude.Match(relative)
 }
 
+// Loop starts the watcher.
+func (w *Watcher) Loop() {
+	go w.loop()
+}
+
 // loop awaits for file write operations. Everytime a write happens on monitored
 // path it pushes the monitored file towards its internal FileDB.
 func (w *Watcher) loop() {
@@ -107,8 +111,20 @@ func (w *Watcher) loop() {
 			if !ok {
 				log.Fatal("watcher errors channel closed.")
 			}
-			log.Println("watcher error:", err)
+			w.notifyError(err, "watcherError")
 		}
+	}
+}
+
+// notifyError tries to write the provided error on watchers Error channel.
+//
+// In case of failure, error is logged using log package.
+func (w *Watcher) notifyError(err error, msg string) {
+	err = errors.Wrap(err, "Stat")
+	select {
+	case w.Error <- err:
+	default:
+		log.Println(err)
 	}
 }
 
@@ -127,14 +143,14 @@ func (w *Watcher) processEvent(event fsnotify.Event) {
 		// future events.
 		finfo, err := os.Stat(event.Name)
 		if err != nil {
-			log.Println("Stat:", event.Name, err)
+			w.notifyError(err, "os.Stat")
 			return
 		}
 
 		// try to hook on this new file/directory. If it is not a dir
 		// it will be a no-op anyways.
 		if err := w.hookDir(event.Name, finfo, nil); err != nil {
-			log.Println("hookDir:", event.Name, err)
+			w.notifyError(err, "hookDir")
 			return
 		}
 

@@ -4,18 +4,25 @@ import (
 	"flag"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"time"
 
 	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
+	"github.com/ricardomaraschini/crebain/trunner"
+	"github.com/ricardomaraschini/crebain/tui"
+	"github.com/ricardomaraschini/crebain/tui/basic"
+	"github.com/ricardomaraschini/crebain/tui/fancy"
 	"github.com/ricardomaraschini/crebain/watcher"
 )
 
+var userIf tui.UI
+
 func main() {
 	var exclude match.Multi
+	var err error
+
 	// Ignore hidden files and directories by default.
 	exclude.Set("^\\.")
 
@@ -24,6 +31,7 @@ func main() {
 		log.Fatal("Getwd:", err)
 	}
 	path := flag.String("path", dpath, "the path to be watched")
+	xif := flag.Bool("tui", false, "enable text user interface")
 	flag.Var(&exclude, "exclude", "regex rules for excluding paths from watching")
 	flag.Parse()
 
@@ -36,9 +44,32 @@ func main() {
 	if err != nil {
 		log.Fatal("NewWatcher:", err)
 	}
-	defer watcher.Close()
+
+	userIf = basic.New()
+	if *xif {
+		userIf, err = fancy.New()
+		if err != nil {
+			log.Fatal("tui.New():", err)
+		}
+	}
+
+	go drainLoop(buf, time.Second)
+	go readWatcherErrors(watcher)
 	watcher.Loop()
-	drainLoop(buf, time.Second)
+	userIf.Start()
+	watcher.Close()
+}
+
+// readWatcherErrors captures all errors and reports them on the interface.
+func readWatcherErrors(w *watcher.Watcher) {
+	for {
+		err := <-w.Errors
+		userIf.PushResult(&trunner.TestResult{
+			Dir:  "undefined",
+			Out:  []string{err.Error()},
+			Code: 256,
+		})
+	}
 }
 
 // drain loop iterates once every interval duration running tests on all
@@ -63,19 +94,24 @@ func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 			modDirs = append(modDirs, dir)
 		}
 
-		test(modDirs)
+		testDirs(modDirs)
 	}
 }
 
-func test(dirs []string) {
-	cmd := exec.Command("clear")
-	cmd.Stdout = os.Stdout
-	cmd.Run()
+// testDirs run go test on provided slice of directories.
+func testDirs(dirs []string) {
+	runner := trunner.New()
 	for _, dir := range dirs {
-		cmd := exec.Command("go", "test", "-cover", dir)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		cmd.Run()
+		result, err := runner.Run(dir)
+		if err != nil {
+			userIf.PushResult(&trunner.TestResult{
+				Dir:  dir,
+				Out:  []string{err.Error()},
+				Code: 256,
+			})
+			return
+		}
+		userIf.PushResult(result)
 	}
 }
 
