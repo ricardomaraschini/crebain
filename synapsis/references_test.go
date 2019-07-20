@@ -1,20 +1,34 @@
 package synapsis
 
 import (
+	// "github.com/davecgh/go-spew/spew"
 	"os"
 	"reflect"
 	"testing"
 )
 
+var (
+	cwd string
+)
+
+func TestMain(m *testing.M) {
+	var err error
+	cwd, err = os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+
+	os.Exit(m.Run())
+}
+
 func TestLocalReferences(t *testing.T) {
-	cwd, err := os.Getwd()
+	path := cwd + "/internal/fibonacci"
+	indexer, err := NewIndexer(path)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	path := cwd + "/internal/fibonacci"
-
-	p, err := localReferences(path)
+	p, err := indexer.localReferences(path)
 	expectedSymbols := map[string]struct{}{
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
@@ -24,6 +38,29 @@ func TestLocalReferences(t *testing.T) {
 		t.Fatal("Unexpected number of packages detected:", len(p))
 	case !reflect.DeepEqual(p[0].usedSymbols, expectedSymbols):
 		t.Fatalf("Symbols don't match expected: %#v", p[0].usedSymbols)
+	}
+}
+
+func TestLoad(t *testing.T) {
+	path := cwd + "/internal/fibonacci"
+	indexer, err := NewIndexer(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := indexer.Load(path, path+"/fib"); err != nil {
+		t.Fatal(err)
+	}
+
+	expKeys := []string{
+		path, path + "/fib",
+	}
+
+	for _, k := range expKeys {
+		if _, ok := indexer.packages[k]; !ok {
+			//spew.Dump(indexer.packages)
+			t.Fatalf("Key %s not loaded", k)
+		}
 	}
 }
 

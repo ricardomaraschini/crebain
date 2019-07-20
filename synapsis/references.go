@@ -1,56 +1,94 @@
 package synapsis
 
 import (
+	"errors"
 	"go/ast"
+	"go/build"
 	"go/types"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"golang.org/x/tools/go/packages"
 )
 
-type pkg struct {
-	name string
+// Package is a single package containing the map of used symbols.
+type Package struct {
 	// TODO: Use syntax tree.
 	usedSymbols map[string]struct{}
-	pPkg        *types.Package
+	typePkg     *types.Package
+
+	Name string
+	Path string
 }
 
 var cfg = &packages.Config{
-	// TODO: Take only what you need.
 	Mode: packages.NeedName | packages.NeedFiles |
-		packages.NeedCompiledGoFiles | packages.NeedImports |
-		packages.NeedDeps | packages.NeedExportsFile |
+		packages.NeedImports | packages.NeedDeps |
 		packages.NeedTypes | packages.NeedSyntax |
-		packages.NeedTypesInfo | packages.NeedTypesSizes,
+		packages.NeedTypesInfo,
 
 	Tests: true,
 }
 
+// SymbolIndex is a struct to index symbol references within packages.
+type Indexer struct {
+	rootPath    string
+	RootPackage *build.Package
+	packages    map[string]*Package
+}
+
+// NewIndexer returns a new Indexer.
+func NewIndexer(rootPath string) (*Indexer, error) {
+	rootPkg, err := build.ImportDir(rootPath, build.FindOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	ix := &Indexer{
+		rootPath:    rootPath,
+		RootPackage: rootPkg,
+		packages:    map[string]*Package{},
+	}
+
+	return ix, nil
+}
+
+// Load all the Packages in the provided paths in the Indexer.
+func (ix *Indexer) Load(paths ...string) error {
+	packages, err := ix.localReferences(paths...)
+	if err != nil {
+		return err
+	}
+
+	for _, pkg := range packages {
+		ix.packages[pkg.Path] = &pkg
+	}
+	return nil
+}
+
 // localReferences returns the list of references to local packages within package path.
-// TODO: use crebain base path.
-func localReferences(paths ...string) ([]pkg, error) {
+func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 	loadedPkgs, err := packages.Load(cfg, paths...)
 	if err != nil {
 		return nil, err
 	}
 
-	var pkgs []pkg
+	var pkgs []Package
 	for _, lp := range loadedPkgs {
 		id := normalisePackageID(lp.ID)
-		// Check if package is already there. In case of test files, new packages are
-		// created, but we want to use always the same `pkg` for them.
-		// Most probably is among the last packages, so let's scan the current `pkgs`
-		// starting from the last element.
-
+		// Check if the package is already there. In case of test files, new packages are
+		// created, but we want to use always the same of the regular files for them.
+		// Most probably it's among the last packages, so let's scan `pkgs` starting from
+		// the last element.
 		var (
 			lastPkgIdx = len(pkgs) - 1
-			p          *pkg
+			p          *Package
 			i          int
 		)
 
 		for i = lastPkgIdx; i >= 0; i-- {
-			if id == pkgs[i].name {
+			if id == pkgs[i].Name {
 				p = &pkgs[i]
 				break
 			}
@@ -58,14 +96,23 @@ func localReferences(paths ...string) ([]pkg, error) {
 
 		// No element found: create a new package.
 		if i < 0 {
-			p = &pkg{
-				name:        id,
+			p = &Package{
+				Name:        id,
 				usedSymbols: map[string]struct{}{},
 			}
+
+			if len(lp.GoFiles) == 0 {
+				return nil, errors.New("No gofiles found but package is processed")
+			}
+			abs, err := filepath.Abs(lp.GoFiles[0])
+			if err != nil {
+				return nil, err
+			}
+			p.Path = filepath.Dir(abs)
 		}
 
-		uses := p.filterSymbols(lp.TypesInfo.Uses, lp.Types)
-		defs := p.filterSymbols(lp.TypesInfo.Defs, lp.Types)
+		uses := ix.filterSymbols(lp.TypesInfo.Uses, lp.Types)
+		defs := ix.filterSymbols(lp.TypesInfo.Defs, lp.Types)
 
 		// Merging the channels.
 		symbols := make(chan string)
@@ -98,7 +145,7 @@ func localReferences(paths ...string) ([]pkg, error) {
 	return pkgs, nil
 }
 
-// In case there are test file, they will be parsed in different packages in the form of
+// In case there are test files, they will be parsed in different packages in the form of
 // - `path.test` or
 // - `path.test [something]`
 // In order to merge them to the main package, we need to remove those parts first.
@@ -115,7 +162,7 @@ func normalisePackageID(id string) string {
 
 // filterSymbols returns asynchronously the symbols of packages in the same workspace
 // in the form of `package.identifier`. For example: "fmt.Println".
-func (p *pkg) filterSymbols(
+func (ix *Indexer) filterSymbols(
 	objMap map[*ast.Ident]types.Object,
 	tPkg *types.Package,
 ) <-chan string {
@@ -131,7 +178,7 @@ func (p *pkg) filterSymbols(
 			switch obj := obj.(type) {
 			case *types.Const, *types.TypeName, *types.Var, *types.Func:
 				objPkg := obj.Pkg()
-				if p.skipPkg(objPkg, tPkg) {
+				if ix.skipPkg(objPkg, tPkg) {
 					continue
 				}
 
@@ -149,7 +196,7 @@ func (p *pkg) filterSymbols(
 	return symbols
 }
 
-func (bp *pkg) skipPkg(p *types.Package, tPkg *types.Package) bool {
+func (ix *Indexer) skipPkg(p *types.Package, tPkg *types.Package) bool {
 	switch {
 	case p == nil:
 		// Standard library
@@ -162,8 +209,7 @@ func (bp *pkg) skipPkg(p *types.Package, tPkg *types.Package) bool {
 	// Keep "basePackage/package" and exclude
 	// - basePackage_test
 	// - external packages
-	// TODO: use crebain's `path` package.
-	pkgRelativePath := strings.TrimPrefix(p.Path(), bp.name)
+	pkgRelativePath := strings.TrimPrefix(p.Path(), ix.RootPackage.ImportPath)
 	switch {
 	case len(pkgRelativePath) == 0:
 		// Same package but different package pointer.
@@ -171,7 +217,7 @@ func (bp *pkg) skipPkg(p *types.Package, tPkg *types.Package) bool {
 	case strings.HasSuffix(pkgRelativePath, "_test"):
 		// Test package.
 		return true
-	case !strings.HasPrefix(p.Path(), bp.name):
+	case !strings.HasPrefix(p.Path(), ix.RootPackage.ImportPath):
 		// p is not a package in the project.
 		// This must be the last case.
 		// TODO: what about vendor folder?
