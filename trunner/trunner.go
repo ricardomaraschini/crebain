@@ -1,10 +1,10 @@
 package trunner
 
 import (
+	"bufio"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"os/exec"
-	"strings"
 )
 
 // New returns a new TRunner.
@@ -45,24 +45,28 @@ func (t *TRunner) Run(dir string) (*TestResult, error) {
 		result.Code = exiterr.ExitCode()
 	}
 
-	rawTestOutput, err := ioutil.ReadAll(std)
+	lines, err := t.parseOutput(std)
 	if err != nil {
 		return nil, err
 	}
 
-	result.Out = t.parseOutput(string(rawTestOutput))
+	result.Out = lines
 	return &result, nil
 }
 
 // parseOutput splits content by new lines, removing empty lines.
-func (t *TRunner) parseOutput(content string) []string {
-	rawLines := strings.Split(content, "\n")
+func (t *TRunner) parseOutput(content io.Reader) ([]string, error) {
+	scanner := bufio.NewScanner(content)
 	lines := make([]string, 0)
-	for _, line := range rawLines {
+	for scanner.Scan() {
+		line := scanner.Text()
 		if line == "" {
 			continue
 		}
 		lines = append(lines, line)
 	}
-	return lines
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return lines, nil
 }
