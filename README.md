@@ -28,11 +28,18 @@ $ go get github.com/ricardomaraschini/crebain/cmd/crebain
 ## Running
 
 ```
-$ crebain --path=/path/to/my/go/app
+$ crebain --path=/path/to/my/go/app --tui
 ```
 
 ## Command line options
 
 ```
-$ crebain --path=/path/to/my/go/app --exclude=.git --exclude=vendor
+$ crebain -h
+Usage of crebain:
+  -exclude value
+        regex rules for excluding paths from watching (default ^\.)
+  -path string
+        the path to be watched (default "current directory")
+  -tui
+        enable text user interface
 ```
