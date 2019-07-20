@@ -26,3 +26,19 @@ func TestLocalReferences(t *testing.T) {
 		t.Fatalf("Symbols don't match expected: %#v", p[0].usedSymbols)
 	}
 }
+
+func TestCleanPackageID(t *testing.T) {
+	testCases := []string{
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci_test [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
+	}
+	exp := "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci"
+
+	for _, id := range testCases {
+		got := normalisePackageID(id)
+		if got != exp {
+			t.Fatalf("Not normalised correctly: %q", got)
+		}
+	}
+}
