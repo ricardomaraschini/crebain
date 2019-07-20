@@ -1,7 +1,7 @@
 package synapsis
 
 import (
-	// "github.com/davecgh/go-spew/spew"
+	//	"github.com/davecgh/go-spew/spew"
 	"os"
 	"reflect"
 	"testing"
@@ -22,23 +22,76 @@ func TestMain(m *testing.M) {
 }
 
 func TestLocalReferences(t *testing.T) {
-	path := cwd + "/internal/fibonacci"
-	indexer, err := NewIndexer(path)
-	if err != nil {
-		t.Fatal(err)
+	t.Run("one", func(t *testing.T) {
+		t.Parallel()
+		path := cwd + "/internal/fibonacci"
+		indexer, err := NewIndexer(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		p, err := indexer.localReferences(path)
+		expPackage := Package{
+			Name: "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+			Path: path,
+			usedSymbols: map[string]struct{}{
+				"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
+				"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
+			},
+		}
+
+		if len(p) != 1 {
+			t.Fatal("Unexpected number of packages detected:", len(p))
+		}
+
+		checkPackages(t, expPackage, p[0])
+	})
+
+	t.Run("two", func(t *testing.T) {
+		t.Parallel()
+		path := cwd + "/internal/fibonacci"
+		indexer, err := NewIndexer(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		p, err := indexer.localReferences(path, path+"/fib")
+
+		if len(p) != 2 {
+			t.Fatal("Unexpected number of packages detected:", len(p))
+		}
+
+		want := []Package{
+			{
+				usedSymbols: map[string]struct{}{},
+				Name:        "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib",
+				Path:        "/home/echoes/go/src/github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib",
+			},
+			{
+				usedSymbols: map[string]struct{}{
+					"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
+					"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
+				},
+				Name: "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+				Path: "/home/echoes/go/src/github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+			},
+		}
+		for i, w := range want {
+			checkPackages(t, w, p[i])
+		}
+	})
+}
+
+func checkPackages(t *testing.T, want, got Package) {
+	switch {
+	case want.Name != got.Name:
+		t.Fatalf("Wrong name. Want: %s, Got: %s", want.Name, got.Name)
+	case want.Path != got.Path:
+		t.Fatalf("Wrong path. Want: %s, Got: %s", want.Path, got.Path)
+	case !reflect.DeepEqual(want.usedSymbols, got.usedSymbols):
+		t.Fatalf("Symbols don't match want: %+v", got.usedSymbols)
 	}
 
-	p, err := indexer.localReferences(path)
-	expectedSymbols := map[string]struct{}{
-		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
-		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
-	}
-	switch {
-	case len(p) != 1:
-		t.Fatal("Unexpected number of packages detected:", len(p))
-	case !reflect.DeepEqual(p[0].usedSymbols, expectedSymbols):
-		t.Fatalf("Symbols don't match expected: %#v", p[0].usedSymbols)
-	}
 }
 
 func TestLoad(t *testing.T) {

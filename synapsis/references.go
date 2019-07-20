@@ -99,6 +99,7 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 			p = &Package{
 				Name:        id,
 				usedSymbols: map[string]struct{}{},
+				typePkg:     lp.Types,
 			}
 
 			if len(lp.GoFiles) == 0 {
@@ -111,8 +112,8 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 			p.Path = filepath.Dir(abs)
 		}
 
-		uses := ix.filterSymbols(lp.TypesInfo.Uses, lp.Types)
-		defs := ix.filterSymbols(lp.TypesInfo.Defs, lp.Types)
+		uses := ix.filterSymbols(lp.TypesInfo.Uses, p.typePkg)
+		defs := ix.filterSymbols(lp.TypesInfo.Defs, p.typePkg)
 
 		// Merging the channels.
 		symbols := make(chan string)
