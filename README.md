@@ -46,3 +46,7 @@ Usage of crebain:
   -tui
         enable text user interface
 ```
+
+## Navigating on TUI
+
+Use keys `j`, `k` to select a test result. To navigate on the test result, use `J`, `K`, `L` and `H` keys.
