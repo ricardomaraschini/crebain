@@ -1,4 +1,4 @@
-package tui
+package fancy
 
 import (
 	"sync"
@@ -90,13 +90,8 @@ func (o *TestsTable) Push(res *trunner.TestResult) {
 	o.Lock()
 	defer o.Unlock()
 
-	pkg := "undefined"
-	if len(res.Out) > 0 {
-		pkg = res.Out[0].Package
-	}
-
 	rows := [][]string{
-		[]string{time.Now().Format("Mon Jan 2 15:04:05"), pkg},
+		[]string{time.Now().Format("Mon Jan 2 15:04:05"), res.Dir},
 	}
 	results := []*trunner.TestResult{res}
 

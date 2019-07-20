@@ -11,22 +11,26 @@ import (
 	"github.com/ricardomaraschini/crebain/fbuffer"
 	"github.com/ricardomaraschini/crebain/match"
 	"github.com/ricardomaraschini/crebain/trunner"
-	"github.com/ricardomaraschini/crebain/tui"
+	"github.com/ricardomaraschini/crebain/tui/basic"
+	"github.com/ricardomaraschini/crebain/tui/fancy"
 	"github.com/ricardomaraschini/crebain/watcher"
 )
 
+// UI interface is implemented by a text based user interface or any other
+// implementation that renders test results.
+type UI interface {
+	PushResult(res *trunner.TestResult)
+	Start()
+	Close()
+}
+
 var (
-	userIf *tui.TUI
+	userIf UI
 )
 
 func main() {
 	var exclude match.Multi
 	var err error
-
-	userIf, err = tui.New()
-	if err != nil {
-		log.Fatal("tui.New():", err)
-	}
 
 	// Ignore hidden files and directories by default.
 	exclude.Set("^\\.")
@@ -36,6 +40,7 @@ func main() {
 		log.Fatal("Getwd:", err)
 	}
 	path := flag.String("path", dpath, "the path to be watched")
+	xif := flag.Bool("tui", false, "enable text user interface")
 	flag.Var(&exclude, "exclude", "regex rules for excluding paths from watching")
 	flag.Parse()
 
@@ -52,6 +57,15 @@ func main() {
 	watcher.Loop()
 	go drainLoop(buf, time.Second)
 
+	userIf = basic.New()
+	if *xif {
+		userIf, err = fancy.New()
+		if err != nil {
+			log.Fatal("tui.New():", err)
+		}
+	}
+
+	defer userIf.Close()
 	userIf.Start()
 }
 
@@ -86,7 +100,10 @@ func testDir(dirs []string) {
 	for _, dir := range dirs {
 		result, err := runner.Run(dir)
 		if err != nil {
-			log.Print("Run:", err)
+			userIf.PushResult(&trunner.TestResult{
+				Dir: dir,
+				Out: []string{err.Error()},
+			})
 			return
 		}
 		userIf.PushResult(result)

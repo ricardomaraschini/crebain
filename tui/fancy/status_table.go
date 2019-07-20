@@ -1,4 +1,4 @@
-package tui
+package fancy
 
 import (
 	"sync"
@@ -34,6 +34,7 @@ func NewStatusTable(height int) *StatusTable {
 
 	maxRows := height - 2
 	table.Rows = make([][]string, maxRows)
+	// library uses a map[int]Style instead of []Style.
 	table.RowStyles = make(map[int]ui.Style, maxRows)
 	for i := 0; i < maxRows; i++ {
 		table.Rows[i] = []string{"   "}

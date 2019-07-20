@@ -1,4 +1,4 @@
-package tui
+package fancy
 
 import (
 	"github.com/ricardomaraschini/crebain/trunner"
@@ -18,7 +18,7 @@ func New() (*TUI, error) {
 		testDetail:  NewTestDetail(height/3, width, height),
 		testsTable:  NewTestsTable(width, height/3),
 	}
-	t.testsTable.OnSelRowChange = t.testDetail.Push
+	t.testsTable.OnSelRowChange = t.testDetail.Update
 	return t, nil
 }
 
@@ -41,11 +41,17 @@ func (t *TUI) Start() {
 		}
 		t.testsTable.Event(e.ID)
 		t.testDetail.Event(e.ID)
+		t.statusTable.Event(e.ID)
 	}
 	ui.Close()
 }
 
-// PushResult pushes a new test result into the interface.
+// Close ends the terminal user interface.
+func (t *TUI) Close() {
+	ui.Close()
+}
+
+// PushResult shows a new test result in the interface.
 func (t *TUI) PushResult(res *trunner.TestResult) {
 	t.statusTable.Push(res)
 	t.testsTable.Push(res)

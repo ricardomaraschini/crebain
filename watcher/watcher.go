@@ -51,10 +51,6 @@ func New(path string, exclude matcher, buf buffer) (*Watcher, error) {
 	return watcher, nil
 }
 
-func (w *Watcher) Loop() {
-	go w.loop()
-}
-
 // Watcher monitors changes on the filesystem.
 type Watcher struct {
 	*fsnotify.Watcher
@@ -91,6 +87,11 @@ func (w *Watcher) isPathExcluded(path string) bool {
 	relative := strings.TrimPrefix(path, w.rootPath)
 	relative = strings.TrimPrefix(relative, "/")
 	return w.exclude.Match(relative)
+}
+
+// Loop starts the watcher.
+func (w *Watcher) Loop() {
+	go w.loop()
 }
 
 // loop awaits for file write operations. Everytime a write happens on monitored
