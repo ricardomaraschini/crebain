@@ -7,4 +7,5 @@ require (
 	github.com/gizak/termui/v3 v3.0.0
 	github.com/pkg/errors v0.8.1
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb // indirect
+	golang.org/x/tools v0.0.0-20190719005602-e377ae9d6386
 )
