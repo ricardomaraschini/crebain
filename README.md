@@ -1,3 +1,4 @@
+[![CircleCI](https://circleci.com/gh/ricardomaraschini/crebain/tree/master.svg?style=svg)](https://circleci.com/gh/ricardomaraschini/crebain/tree/master)
 ``` 
  ██████╗██████╗ ███████╗██████╗  █████╗ ██╗███╗   ██╗
 ██╔════╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██║████╗  ██║
@@ -6,6 +7,7 @@
 ╚██████╗██║  ██║███████╗██████╔╝██║  ██║██║██║ ╚████║
 ╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
 ```
+
 ## About
 
 Crebain watches a directory and automatically executes `go test` everytime a
