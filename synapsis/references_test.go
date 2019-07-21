@@ -50,12 +50,13 @@ func TestLocalReferences(t *testing.T) {
 	t.Run("two", func(t *testing.T) {
 		t.Parallel()
 		path := cwd + "/internal/fibonacci"
+		pkg2 := path + "/fib"
 		indexer, err := NewIndexer(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		p, err := indexer.localReferences(path, path+"/fib")
+		p, err := indexer.localReferences(path, pkg2)
 
 		if len(p) != 2 {
 			t.Fatal("Unexpected number of packages detected:", len(p))
@@ -65,7 +66,7 @@ func TestLocalReferences(t *testing.T) {
 			{
 				usedSymbols: map[string]struct{}{},
 				Name:        "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib",
-				Path:        "/home/echoes/go/src/github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib",
+				Path:        pkg2,
 			},
 			{
 				usedSymbols: map[string]struct{}{
@@ -73,7 +74,7 @@ func TestLocalReferences(t *testing.T) {
 					"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
 				},
 				Name: "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
-				Path: "/home/echoes/go/src/github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+				Path: path,
 			},
 		}
 		for i, w := range want {
@@ -85,11 +86,11 @@ func TestLocalReferences(t *testing.T) {
 func checkPackages(t *testing.T, want, got Package) {
 	switch {
 	case want.Name != got.Name:
-		t.Fatalf("Wrong name. Want: %s, Got: %s", want.Name, got.Name)
+		t.Errorf("Wrong name. Want: %s, Got: %s", want.Name, got.Name)
 	case want.Path != got.Path:
-		t.Fatalf("Wrong path. Want: %s, Got: %s", want.Path, got.Path)
+		t.Errorf("Wrong path. Want: %s, Got: %s", want.Path, got.Path)
 	case !reflect.DeepEqual(want.usedSymbols, got.usedSymbols):
-		t.Fatalf("Symbols don't match want: %+v", got.usedSymbols)
+		t.Errorf("Symbols don't match want: %+v", got.usedSymbols)
 	}
 
 }
@@ -149,5 +150,20 @@ func BenchmarkNormaliseImportPath(b *testing.B) {
 			}
 		})
 	}
+}
 
+func BenchmarkLoadPackages(b *testing.B) {
+	var (
+		pkg1 = cwd + "/internal/fibonacci"
+		pkg2 = cwd + "/internal/fibonacci/fib"
+	)
+
+	indexer, err := NewIndexer(cwd)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		_, _ = indexer.localReferences(pkg1, pkg2)
+	}
 }
