@@ -150,14 +150,23 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 // - `path.test` or
 // - `path.test [something]`
 // In order to merge them to the main package, we need to remove those parts first.
-// TODO: Make it faster!
 func normaliseImportPath(id string) string {
 	// Remove [something] if present.
-	parts := strings.SplitN(id, " ", 2)
-	id = parts[0]
+	cut := len(id)
+	for i, r := range id {
+		if r == ' ' {
+			cut = i
+			break
+		}
+	}
+	id = id[:cut]
 
-	id = strings.TrimSuffix(id, ".test")
-	id = strings.TrimSuffix(id, "_test")
+	// Remove either _test or .test from last part.
+	notest := strings.TrimSuffix(id, "test")
+	lastChar := notest[len(notest)-1]
+	if lastChar == '.' || lastChar == '_' {
+		return notest[:len(notest)-1]
+	}
 	return id
 }
 

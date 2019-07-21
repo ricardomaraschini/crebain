@@ -120,6 +120,7 @@ func TestLoad(t *testing.T) {
 func TestNormaliseImportPath(t *testing.T) {
 	testCases := []string{
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test",
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci_test [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
 	}
@@ -136,6 +137,7 @@ func TestNormaliseImportPath(t *testing.T) {
 func BenchmarkNormaliseImportPath(b *testing.B) {
 	testCases := []string{
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test",
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci_test [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
 	}
