@@ -33,9 +33,9 @@ var cfg = &packages.Config{
 
 // SymbolIndex is a struct to index symbol references within packages.
 type Indexer struct {
-	rootPath    string
-	RootPackage *build.Package
-	packages    map[string]*Package
+	rootPath string
+	Root     *build.Package
+	packages map[string]*Package
 }
 
 // NewIndexer returns a new Indexer.
@@ -46,9 +46,9 @@ func NewIndexer(rootPath string) (*Indexer, error) {
 	}
 
 	ix := &Indexer{
-		rootPath:    rootPath,
-		RootPackage: rootPkg,
-		packages:    map[string]*Package{},
+		rootPath: rootPath,
+		Root:     rootPkg,
+		packages: map[string]*Package{},
 	}
 
 	return ix, nil
@@ -76,7 +76,7 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 
 	var pkgs []Package
 	for _, lp := range loadedPkgs {
-		id := normalisePackageID(lp.ID)
+		id := normaliseImportPath(lp.ID)
 		// Check if the package is already there. In case of test files, new packages are
 		// created, but we want to use always the same of the regular files for them.
 		// Most probably it's among the last packages, so let's scan `pkgs` starting from
@@ -112,8 +112,8 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 			p.Path = filepath.Dir(abs)
 		}
 
-		uses := ix.filterSymbols(lp.TypesInfo.Uses, p.typePkg)
-		defs := ix.filterSymbols(lp.TypesInfo.Defs, p.typePkg)
+		uses := ix.filterSymbols(lp.TypesInfo.Uses, lp.Types)
+		defs := ix.filterSymbols(lp.TypesInfo.Defs, lp.Types)
 
 		// Merging the channels.
 		symbols := make(chan string)
@@ -150,8 +150,8 @@ func (ix *Indexer) localReferences(paths ...string) ([]Package, error) {
 // - `path.test` or
 // - `path.test [something]`
 // In order to merge them to the main package, we need to remove those parts first.
-// TODO: is `path.test [something]` ignorable?
-func normalisePackageID(id string) string {
+// TODO: Make it faster!
+func normaliseImportPath(id string) string {
 	// Remove [something] if present.
 	parts := strings.SplitN(id, " ", 2)
 	id = parts[0]
@@ -179,7 +179,7 @@ func (ix *Indexer) filterSymbols(
 			switch obj := obj.(type) {
 			case *types.Const, *types.TypeName, *types.Var, *types.Func:
 				objPkg := obj.Pkg()
-				if ix.skipPkg(objPkg, tPkg) {
+				if ix.skipSymbol(objPkg, tPkg) {
 					continue
 				}
 
@@ -197,33 +197,22 @@ func (ix *Indexer) filterSymbols(
 	return symbols
 }
 
-func (ix *Indexer) skipPkg(p *types.Package, tPkg *types.Package) bool {
+func (ix *Indexer) skipSymbol(sym *types.Package, parent *types.Package) bool {
+	// Order of these statements is important.
 	switch {
-	case p == nil:
-		// Standard library
+	case sym == nil:
+		// Builtin types.
 		return true
-	case p == tPkg:
+	case sym == parent:
 		// Same package, #whoCares.
+		return true
+	case !strings.HasPrefix(sym.Path(), ix.Root.ImportPath):
+		// p is not a package in the project.
 		return true
 	}
 
-	// Keep "basePackage/package" and exclude
-	// - basePackage_test
-	// - external packages
-	pkgRelativePath := strings.TrimPrefix(p.Path(), ix.RootPackage.ImportPath)
-	switch {
-	case len(pkgRelativePath) == 0:
-		// Same package but different package pointer.
-		return true
-	case strings.HasSuffix(pkgRelativePath, "_test"):
-		// Test package.
-		return true
-	case !strings.HasPrefix(p.Path(), ix.RootPackage.ImportPath):
-		// p is not a package in the project.
-		// This must be the last case.
-		// TODO: what about vendor folder?
-		return true
-	default:
-		return false
-	}
+	// Symbol should be excluded if it belongs to a test file.
+	symNorm := normaliseImportPath(sym.Path())
+	parentNorm := normaliseImportPath(parent.Path())
+	return symNorm == parentNorm
 }

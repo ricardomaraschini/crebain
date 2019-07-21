@@ -23,7 +23,7 @@ func TestMain(m *testing.M) {
 
 func TestLocalReferences(t *testing.T) {
 	t.Run("one", func(t *testing.T) {
-		t.Parallel()
+		// t.Parallel()
 		path := cwd + "/internal/fibonacci"
 		indexer, err := NewIndexer(path)
 		if err != nil {
@@ -117,7 +117,7 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestCleanPackageID(t *testing.T) {
+func TestNormaliseImportPath(t *testing.T) {
 	testCases := []string{
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
 		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
@@ -126,9 +126,26 @@ func TestCleanPackageID(t *testing.T) {
 	exp := "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci"
 
 	for _, id := range testCases {
-		got := normalisePackageID(id)
+		got := normaliseImportPath(id)
 		if got != exp {
 			t.Fatalf("Not normalised correctly: %q", got)
 		}
 	}
+}
+
+func BenchmarkNormaliseImportPath(b *testing.B) {
+	testCases := []string{
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
+		"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci_test [github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci.test]",
+	}
+
+	for _, tc := range testCases {
+		b.Run(tc, func(b *testing.B) {
+			for n := 0; n < b.N; n++ {
+				normaliseImportPath(tc)
+			}
+		})
+	}
+
 }
