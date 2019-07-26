@@ -1,13 +1,8 @@
 [![CircleCI](https://circleci.com/gh/ricardomaraschini/crebain/tree/master.svg?style=svg)](https://circleci.com/gh/ricardomaraschini/crebain/tree/master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/axcdnt/snitch)](https://goreportcard.com/report/github.com/axcdnt/snitch)
-``` 
- ██████╗██████╗ ███████╗██████╗  █████╗ ██╗███╗   ██╗
-██╔════╝██╔══██╗██╔════╝██╔══██╗██╔══██╗██║████╗  ██║
-██║     ██████╔╝█████╗  ██████╔╝███████║██║██╔██╗ ██║
-██║     ██╔══██╗██╔══╝  ██╔══██╗██╔══██║██║██║╚██╗██║
-╚██████╗██║  ██║███████╗██████╔╝██║  ██║██║██║ ╚████║
-╚═════╝╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚═╝╚═╝  ╚═══╝
-```
+
+![crebain](https://raw.githubusercontent.com/ricardomaraschini/crebain/master/logo/crebain.png)
+
 
 ## About
 
