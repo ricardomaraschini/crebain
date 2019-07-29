@@ -1,5 +1,9 @@
 package fib
 
+import (
+	"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/useless"
+)
+
 type Sequence struct {
 	series []int64
 }
@@ -14,6 +18,10 @@ func (s Sequence) Till(n uint) int64 {
 		return s.series[n]
 	}
 
-	s.series = append(s.series, s.series[dim-2]+s.series[dim-1])
+	s.series = append(s.series, esoteric.CalcF1b(s.series[dim-2], s.series[dim-1]))
 	return s.Till(n)
+}
+
+func (s Sequence) DoNothing() {
+	useless.IDoNothing()
 }

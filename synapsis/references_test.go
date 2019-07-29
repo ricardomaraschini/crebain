@@ -1,7 +1,7 @@
 package synapsis
 
 import (
-	//	"github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 	"os"
 	"reflect"
 	"testing"
@@ -22,8 +22,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestLocalReferences(t *testing.T) {
-	t.Run("one", func(t *testing.T) {
-		// t.Parallel()
+	t.Run("one pkg", func(t *testing.T) {
+		t.Parallel()
 		path := cwd + "/internal/fibonacci"
 		indexer, err := NewIndexer(path)
 		if err != nil {
@@ -31,12 +31,13 @@ func TestLocalReferences(t *testing.T) {
 		}
 
 		p, err := indexer.localReferences(path)
+		const base = "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci"
 		expPackage := Package{
-			Name: "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
+			Name: base,
 			Path: path,
 			usedSymbols: map[string]struct{}{
-				"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
-				"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
+				base + "/fib.New":  struct{}{},
+				base + "/fib.Till": struct{}{},
 			},
 		}
 
@@ -47,34 +48,60 @@ func TestLocalReferences(t *testing.T) {
 		checkPackages(t, expPackage, p[0])
 	})
 
-	t.Run("two", func(t *testing.T) {
+	t.Run("more pkgs", func(t *testing.T) {
 		t.Parallel()
-		path := cwd + "/internal/fibonacci"
-		pkg2 := path + "/fib"
+		var (
+			path = cwd + "/internal/fibonacci"
+			pkgs = []string{
+				path,
+				path + "/fib",
+				path + "/fib/esoteric",
+				path + "/useless",
+			}
+		)
+
 		indexer, err := NewIndexer(path)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		p, err := indexer.localReferences(path, pkg2)
+		p, err := indexer.localReferences(pkgs...)
 
-		if len(p) != 2 {
+		if len(p) != 4 {
 			t.Fatal("Unexpected number of packages detected:", len(p))
 		}
 
+		spew.Dump(p)
+		t.Fatal("This will be my monument")
+		const base = "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci"
 		want := []Package{
 			{
-				usedSymbols: map[string]struct{}{},
-				Name:        "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib",
-				Path:        pkg2,
+				usedSymbols: map[string]struct{}{
+					// there should be something here.
+				},
+				Name: base + "/fib/esoteric",
+				Path: pkgs[2],
 			},
 			{
 				usedSymbols: map[string]struct{}{
-					"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.New":  struct{}{},
-					"github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci/fib.Till": struct{}{},
+					base + "/fib.Sequence":             struct{}{}, // this doesn't make any sense.
+					base + "/fib/esoteric.SuperFastDT": struct{}{},
 				},
-				Name: "github.com/ricardomaraschini/crebain/synapsis/internal/fibonacci",
-				Path: path,
+				Name: base + "/fib/useless",
+				Path: pkgs[3],
+			},
+			{
+				usedSymbols: map[string]struct{}{},
+				Name:        base + "/fib",
+				Path:        pkgs[1],
+			},
+			{
+				usedSymbols: map[string]struct{}{
+					base + "/fib.New":  struct{}{},
+					base + "/fib.Till": struct{}{},
+				},
+				Name: base,
+				Path: pkgs[0],
 			},
 		}
 		for i, w := range want {
