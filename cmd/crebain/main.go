@@ -35,6 +35,11 @@ func main() {
 	flag.Var(&exclude, "exclude", "regex rules for excluding paths from watching")
 	flag.Parse()
 
+	*path, err = filepath.Abs(*path)
+	if err != nil {
+		log.Fatal("Path:", err)
+	}
+
 	if err := os.Chdir(*path); err != nil {
 		log.Fatal("Chdir:", err)
 	}
