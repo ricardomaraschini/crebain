@@ -17,7 +17,10 @@ import (
 	"github.com/ricardomaraschini/crebain/watcher"
 )
 
-var userIf tui.UI
+var (
+	userIf tui.UI
+	runner *trunner.TRunner
+)
 
 func main() {
 	var exclude match.Multi
@@ -34,6 +37,9 @@ func main() {
 	xif := flag.Bool("tui", false, "enable text user interface")
 	flag.Var(&exclude, "exclude", "regex rules for excluding paths from watching")
 	flag.Parse()
+
+	testFlags := parseTestFlags(os.Args)
+	runner = trunner.New(testFlags...)
 
 	if err := os.Chdir(*path); err != nil {
 		log.Fatal("Chdir:", err)
@@ -58,6 +64,18 @@ func main() {
 	watcher.Loop()
 	userIf.Start()
 	watcher.Close()
+}
+
+// parseTestFlags takes all the arguments set after '--'.
+func parseTestFlags(flags []string) []string {
+	testFlags := make([]string, 0)
+	for i, arg := range flags {
+		if arg == "--" && len(flags) > i+1 {
+			testFlags = flags[i+1:]
+		}
+	}
+
+	return testFlags
 }
 
 // readWatcherErrors captures all errors and reports them on the interface.
@@ -96,7 +114,6 @@ func drainLoop(db *fbuffer.FBuffer, interval time.Duration) {
 
 // testDirs run go test on provided slice of directories.
 func testDirs(dirs []string) {
-	runner := trunner.New()
 	for _, dir := range dirs {
 		result, err := runner.Run(dir)
 		if err != nil {

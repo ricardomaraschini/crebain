@@ -8,8 +8,10 @@ import (
 )
 
 // New returns a new TRunner.
-func New() *TRunner {
-	return &TRunner{}
+func New(testArgs ...string) *TRunner {
+	return &TRunner{
+		testArgs: testArgs,
+	}
 }
 
 // TestResult holds a result of a test execution.
@@ -35,7 +37,9 @@ func (t *TestResult) Success() bool {
 }
 
 // TRunner is go test helper.
-type TRunner struct{}
+type TRunner struct {
+	testArgs []string
+}
 
 // Run runs tests on provided directories.
 func (t *TRunner) Run(dir string) (*TestResult, error) {
@@ -43,8 +47,10 @@ func (t *TRunner) Run(dir string) (*TestResult, error) {
 		Dir: dir,
 	}
 
+	params := append([]string{"test", "-cover"}, t.testArgs...)
+	params = append(params, dir)
+	cmd := exec.Command("go", params...)
 	std := bytes.NewBuffer(nil)
-	cmd := exec.Command("go", "test", "-cover", dir)
 	cmd.Stdout = std
 	cmd.Stderr = std
 	if err := cmd.Start(); err != nil {
