@@ -3,6 +3,7 @@ package main
 import (
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -77,4 +78,36 @@ func TestHasTestFile(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestParseTestArguments(t *testing.T) {
+	subtests := []struct {
+		name  string
+		input []string
+		exp   []string
+	}{
+		{
+			name:  "nothing",
+			input: []string{"-path=./something -exclude 'vendor'"},
+			exp:   []string{},
+		},
+		{
+			name:  "-- set",
+			input: []string{"-path=./something -exclude 'vendor' -- "},
+			exp:   []string{},
+		},
+		{
+			name:  "-- one",
+			input: []string{"-path=./something -exclude 'vendor'"},
+			exp:   []string{},
+		},
+	}
+
+	for _, st := range subtests {
+		t.Run(st.name, func(t *testing.T) {
+			if got := parseTestFlags(st.input); !reflect.DeepEqual(got, st.exp) {
+				t.Fatal("Parsed flags are different than expected.")
+			}
+		})
+	}
 }
