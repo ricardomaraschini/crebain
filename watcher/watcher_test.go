@@ -86,6 +86,12 @@ func TestIsPathExcluded(t *testing.T) {
 	if got := watcher.isPathExcluded(path); got != expected {
 		t.Fatal("Unexpected result:", got)
 	}
+
+	watcher = Watcher{}
+	expected = false
+	if got := watcher.isPathExcluded(path); got != expected {
+		t.Fatal("Unexpected result:", got)
+	}
 }
 
 type dummyBuffer struct {

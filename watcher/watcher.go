@@ -78,15 +78,15 @@ func (w *Watcher) hookDir(path string, info os.FileInfo, err error) error {
 }
 
 func (w *Watcher) isWatchable(path string, info os.FileInfo) bool {
-	if w.isPathExcluded(path) {
-		return false
-	}
-	return info.IsDir()
+	return !w.isPathExcluded(path) && info.IsDir()
 }
 
 // isPathExcluded checks whether the path matches against the exclusion rules.
 // Check is performed in relation of the root path.
 func (w *Watcher) isPathExcluded(path string) bool {
+	if w.exclude == nil {
+		return false
+	}
 	relative := strings.TrimPrefix(path, w.rootPath)
 	relative = strings.TrimPrefix(relative, "/")
 	return w.exclude.Match(relative)
